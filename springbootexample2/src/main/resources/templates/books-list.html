@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Books List</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+    <body>
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Author</th>
+                <th>Pages</th>
+                <th></th>
+                <th></th>
+            </tr>
+            <tr th:each="book: ${books}">
+                <td th:text="${book.name}" />
+                <td th:text="${book.author}" />
+                <td th:text="${book.pages}" />
+                <td>
+                    <a th:href="@{'/edit-form/' + ${book.id}}">Edit</a>
+                </td>
+                <td>
+                    <a th:href="@{'/delete/' + ${book.id}}">Delete</a>
+                </td>
+            </tr>
+        </table>
+
+        <a href="/create-form">Add a book</a>
+
+    </body>
+</html>
