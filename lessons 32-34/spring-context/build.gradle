@@ -1,0 +1,19 @@
+plugins {
+    id 'groovy'
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+}
+
+group 'product.star'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.springframework:spring-context:5.2.9.RELEASE"
+    compile 'org.codehaus.groovy:groovy-all:2.3.11'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}

@@ -1,0 +1,5 @@
+rootProject.name = 'product-star'
+include 'spring-basics'
+include 'spring-context'
+include 'spring-rest'
+

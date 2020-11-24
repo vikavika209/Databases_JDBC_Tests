@@ -1,0 +1,16 @@
+plugins {
+    id 'java'
+}
+
+group 'product.star'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+// https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '2.4.0'
+
+}
