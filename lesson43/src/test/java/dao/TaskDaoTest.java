@@ -8,6 +8,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import javax.sql.DataSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,7 +92,7 @@ class TaskDaoTest {
     assertThat(taskDao.getById(task.getId()))
       .isNotNull()
       .extracting("id", "title", "finished", "createdDate")
-      .containsExactly(task.getId(), task.getTitle(), task.getFinished(), task.getCreatedDate());
+      .containsExactly(task.getId(), task.getTitle(), task.getFinished(), task.getCreatedDate().truncatedTo(ChronoUnit.SECONDS));
   }
 
   @Test
@@ -99,13 +100,13 @@ class TaskDaoTest {
     Task unfinishedTask = new Task("test task", false, LocalDateTime.now());
     taskDao.save(unfinishedTask);
 
-    Task finishedTask = new Task("test task", false, LocalDateTime.now());
+    Task finishedTask = new Task("test task", true, LocalDateTime.now());
     taskDao.save(finishedTask);
 
     assertThat(taskDao.findAllNotFinished())
       .singleElement()
       .extracting("id", "title", "finished", "createdDate")
-      .containsExactly(unfinishedTask.getId(), unfinishedTask.getTitle(), unfinishedTask.getFinished(), unfinishedTask.getCreatedDate());
+      .containsExactly(unfinishedTask.getId(), unfinishedTask.getTitle(), unfinishedTask.getFinished(), unfinishedTask.getCreatedDate().truncatedTo(ChronoUnit.SECONDS));
   }
 
   @Test
