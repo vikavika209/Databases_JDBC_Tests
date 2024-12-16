@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.List;
 import javax.sql.DataSource;
 import java.sql.Timestamp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskDao {
   private final DataSource dataSource;
@@ -20,6 +22,8 @@ public class TaskDao {
   public TaskDao(DataSource dataSource) {
     this.dataSource = dataSource;
   }
+
+  Logger logger = LoggerFactory.getLogger(TaskDao.class);
 
   public Task save(Task task) {
     // get connection
@@ -71,6 +75,7 @@ public class TaskDao {
       }
 
     } catch (SQLException throwables) {
+      logger.error("Error while finding all", throwables);
       throw new RuntimeException(throwables);
     }
 
@@ -86,6 +91,7 @@ public class TaskDao {
       return  result;
 
     } catch (SQLException e) {
+      logger.error("Error while deleting all: {}", String.valueOf(e));
         throw new RuntimeException("Error while deleting all tasks", e);
     }
 
@@ -112,11 +118,11 @@ public class TaskDao {
           task.setId(resultSet.getInt(1));
           return task;
         }else {
-          //throw new RuntimeException("Task not found with id: " + id);
           return null;
         }
       }
     } catch (SQLException e) {
+      logger.error("Error fetching task with id: {}", id, e);
       throw new RuntimeException("Error fetching task with id: " + id, e);
     }
   }
@@ -128,17 +134,15 @@ public class TaskDao {
          Statement statement = connection.createStatement()) {
       try (ResultSet rs = statement.executeQuery(sql)) {
         while (rs.next()) {
-          Task task = new Task(
-                  rs.getString(2),
-                  rs.getBoolean(3),
-                  rs.getTimestamp(4).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
-          task.setId(rs.getInt(1));
+          Task task = taskFromResultSet(rs);
           notFinishedTask.add(task);
         }
       } catch (SQLException e) {
+          logger.error("SQLException while fetching not finished tasks: {}", String.valueOf(e));
         throw new RuntimeException("Error fetching not finished tasks: " + e);
       }
       } catch (SQLException e) {
+        logger.error("SQLException fetching not finished tasks: {}", String.valueOf(e));
         throw new RuntimeException("Error fetching not finished tasks: " + e);
     }
       return notFinishedTask;
@@ -153,15 +157,12 @@ public class TaskDao {
       statement.setInt(1, numberOfNewestTasks);
       try(ResultSet rs = statement.executeQuery()){
         while (rs.next()){
-          Task task = new Task(
-                  rs.getString(2),
-                  rs.getBoolean(3),
-                  rs.getTimestamp(4).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
-          task.setId(rs.getInt(1));
+          Task task = taskFromResultSet(rs);
           newTasks.add(task);
         }
       }
     } catch (SQLException e) {
+      logger.error("Error fetching new tasks: {}", String.valueOf(e));
         throw new RuntimeException("Error fetching new tasks: " + e);
     }
 
@@ -169,35 +170,67 @@ public class TaskDao {
       return newTasks;
   }
 
-  public Task finishTask(Task task) {
-    Task taskTofinish = new Task(task.getTitle(), true, task.getCreatedDate());
-    taskTofinish.setId(task.getId());
+  public void finishTask(Task task) {
 
-    String sql = "UPDATE task SET title = ?, finished = ?, created_date = ? WHERE task_id = ?";
-    try(Connection connection = dataSource.getConnection();
-    PreparedStatement statement = connection.prepareStatement(sql);){
-      statement.setString(1, task.getTitle());
-      statement.setBoolean(2, true);
-      statement.setTimestamp(3, Timestamp.valueOf(task.getCreatedDate()));
-      statement.setInt(4, task.getId());
-      statement.executeUpdate();
-
-    } catch (SQLException e) {
-        throw new RuntimeException("Error to finish task with id " + task.getId() + ": " + e.getMessage(), e);
+    if (task == null){
+      logger.debug("Task is null");
     }
-      return taskTofinish;
+    else {
+      Task taskTofinish = new Task(task.getTitle(), true, task.getCreatedDate());
+      taskTofinish.setId(task.getId());
+
+      String sql = "UPDATE task SET title = ?, finished = ?, created_date = ? WHERE task_id = ?";
+      try (Connection connection = dataSource.getConnection();
+           PreparedStatement statement = connection.prepareStatement(sql);) {
+        statement.setString(1, task.getTitle());
+        statement.setBoolean(2, true);
+        statement.setTimestamp(3, Timestamp.valueOf(task.getCreatedDate()));
+        statement.setInt(4, task.getId());
+        statement.executeUpdate();
+
+      } catch (SQLException e) {
+        logger.error("Error to finish task with id = {}: {} ", task.getId(), String.valueOf(e));
+        throw new RuntimeException("Error to finish task with id " + task.getId() + ": " + e.getMessage(), e);
+      }
+    }
   }
 
   public void deleteById(Integer id) {
-    String sql = "DELETE FROM task WHERE task_id = ?";
-
-    try(Connection connection = dataSource.getConnection();
-    PreparedStatement statement = connection.prepareStatement(sql)){
-      statement.setInt(1, id);
-      statement.executeUpdate();
-
-    } catch (SQLException e) {
-        throw new RuntimeException("Error to delete task with id " + id + ": " + e.getMessage(), e);
+    Task task = getById(id);
+    if(task == null){
+      logger.debug("Task with id = {} doesn't exist", id);
     }
+    else {
+      String sql = "DELETE FROM task WHERE task_id = ?";
+
+      try (Connection connection = dataSource.getConnection();
+           PreparedStatement statement = connection.prepareStatement(sql)) {
+        statement.setInt(1, id);
+        statement.executeUpdate();
+
+      } catch (SQLException e) {
+        logger.error("Error to delete task with id = {}: {} ", id, String.valueOf(e));
+        throw new RuntimeException("Error to delete task with id " + id + ": " + e.getMessage(), e);
+      }
+    }
+  }
+  private Task taskFromResultSet(ResultSet rs){
+      Task task = null;
+      try {
+          task = new Task(
+                  rs.getString("title"),
+                  rs.getBoolean("finished"),
+                  rs.getTimestamp("created_date").toLocalDateTime().truncatedTo(ChronoUnit.SECONDS));
+      } catch (SQLException e) {
+        logger.error("SQLException while getting task from Result Set");
+          throw new RuntimeException(e);
+      }
+      try {
+          task.setId(rs.getInt("task_id"));
+      } catch (SQLException e) {
+        logger.error("SQLException to set Id to task getting from Result Set");
+          throw new RuntimeException(e);
+      }
+      return task;
   }
 }

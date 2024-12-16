@@ -130,8 +130,10 @@ class TaskDaoTest {
   public void testFinishSetsCorrectFlagInDb() {
     Task task = new Task("test task", false, LocalDateTime.now());
     taskDao.save(task);
+    taskDao.finishTask(task);
+    Task taskAfterUpdating = taskDao.getById(task.getId());
 
-    assertThat(taskDao.finishTask(task).getFinished()).isTrue();
+    assertThat(taskAfterUpdating.getFinished()).isTrue();
     assertThat(taskDao.getById(task.getId()).getFinished()).isTrue();
   }
 
